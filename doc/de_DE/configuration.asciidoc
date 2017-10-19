@@ -1,0 +1,25 @@
+Das Wetter-Plugin ermöglicht es, Wetterdaten für eine oder mehrere Städte zu erhalten. Es ermöglicht unter anderem Informationen von Sonnenaufgang und Sonnenuntergang, Temperatur, Prognose, Wind ...
+
+=== Plugin Konfiguration
+
+Après avoir installé le plugin, il vous faut l'activer, puis renseigner votre clef api/ 
+
+Pour obtenir votre clef api il faut aller link:https://home.openweathermap.org[ici], et vous créez un compte, ensuite il faut copier votre clef api dans jeedom.
+
+[IMPORTANT]
+Mann muß dann ein paar Stunden warten, bis der Schlüssel aktiv ist.
+
+=== Geräte Konfiguration
+
+Hier finden sie die ganze Konfiguration Ihrer Geräte:
+
+* *Name der Wetterausrüstung* : Name Ihrer Wetterausrüstung 
+* *aktivieren* : erlaubt, Ihr Gerät aktiv zu machen
+* *Sichtbar* : macht Ihr Gerät auf dem Armaturenbrett sichtbar
+* *Eltern-Objekt* : giebt an welchem Eltern Objekt das Gerät angehört
+* *Stadt* : Sie müssen den Namen ihrer Stadt mit den Ländercode eingeben, zum Beispiel Paris, fr
+* *Mobil Vollansicht* : ermöglicht alle Wetterinformationen anzuzeigen oder nicht auf Mobile Geräte
+
+Im folgenden finden Sie alle verfügbaren Befehle und die möglichkeit die Zahlenwerte zu archivieren oder nicht.
+
+Le rafraîchissement des données météo s'effectue toutes les 30 mn.
