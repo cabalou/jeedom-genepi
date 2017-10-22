@@ -19,9 +19,48 @@
 /* * ***************************Includes********************************* */
 require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
 
+
+class genepiConfig {
+
+    private $configTree;
+
+    private static function getPath() {
+        return realpath(dirname(__FILE__) . "/../../daemon/config");
+    }
+
+    // Constructor - get config file and build config tree
+    function __construct() {
+        $this->configTree = array();
+
+        //get Nodes
+        $nodes = array_map(function ($val) { return substr($val, 0, -5); }, preg_grep("/\.json$/", scandir(self::getPath() ) ));
+
+        // parse config file
+        foreach ($nodes as $node) {
+            $this->configTree[$node] = json_decode(file_get_contents(self::getPath() . "/$node.json"), true);
+        }
+    }
+
+    public function getNodes() {
+        return array_keys($this->configTree);
+    }
+
+    public function getProto($node) {
+        return array_keys($this->configTree[$node]);
+    }
+
+    public function getType($node, $proto) {
+        return array_keys($this->configTree[$node][$proto]);
+    }
+
+    public function getParam($node, $proto, $type) {
+        return $this->configTree[$node][$proto][$type]['param'];
+    }
+}
+
+
 class genepi extends eqLogic {
     /*     * *************************Attributs****************************** */
-
 
 
     /*     * ***********************Methode static*************************** */
@@ -67,20 +106,11 @@ class genepi extends eqLogic {
     public static function check() {
         $gateway = config::byKey('ip','genepi');
         log::add('genepi','debug','Check genepi GW ' . $gateway);
-        $pouet = genepi::sendToDaemon('check');
+        $pouet = genepi::sendToDaemon('check', $gateway);
 
         return "YEP YEP YEP";
     }
 
-
-    // check if genepii daemon responds
-    public static function getCapabilities() {
-        $gateway = config::byKey('ip','genepi');
-        log::add('genepi','debug','Check genepi GW ' . $gateway);
-        $pouet = genepi::sendToDaemon('capabilities');
-
-        return "YEP YEP YEP";
-    }
 
 
     /*

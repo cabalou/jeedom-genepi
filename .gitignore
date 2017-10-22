@@ -1,2 +1,2 @@
-/daemon/config/*
-/daemon/node_modules
+daemon/config/*
+daemon/node_modules/

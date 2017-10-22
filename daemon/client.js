@@ -114,9 +114,10 @@ console.log('capabilities response: %s', result);
 
 //////////////////////////////  Configuring RPC methods  //////////////////////////////
 const rpcMethod = {
-  // capabilities
+  // TODO : param = URL
   'check': (params) => 'OK',
 
+  // TODO : a supprimer ?
   'capabilities': async (params) => {
     try {
       let result = await ws.call('capabilities', params);

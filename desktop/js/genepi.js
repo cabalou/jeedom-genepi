@@ -15,13 +15,57 @@
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
 
- $('#bt_cronGenerator').on('click',function(){
-    jeedom.getCronSelectModal({},function (result) {
-        $('.eqLogicAttr[data-l1key=configuration][data-l2key=refreshCron]').value(result.value);
-    });
+//$('.debuggen').append($("<p></p>").text("Debug : " + $(this).val()) );
+
+
+// Node selection
+$('#sel_node').on('change', function(){
+    $('.genepi-proto').hide();
+    $('.genepi-type').hide();
+    if ($(this).val()) {
+        $('.genepi-proto[data-proto^="' + $(this).val() + '."]').show();
+        $('#sel_proto').val('');
+        $('#sel_type').val('');
+    }
 });
 
- function addCmdToTable(_cmd) {
+
+//Proto selection
+$('#sel_proto').on('change', function(){
+    $('.genepi-type').hide();
+    if ($(this).val()) {
+        $('.genepi-type[data-type^="' + $('#sel_node').val() + '.' + $(this).val() + '."]').show();
+        $('#sel_type').val('');
+    }
+});
+
+
+//Type selection
+$('#sel_type').on('change', function(){
+    //equip params
+    $('.genepi-param').hide();
+    if ($(this).val()) {
+        $('.genepi-param[data-param="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '"]').show();
+    }
+
+    //cmd
+    $('.genepi-cmd').hide();
+    if ($(this).val()) {
+//        $('.genepi-cmd[data-cmd^="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '."]').show();
+    }
+});
+
+
+$('#sel_node_proto').on('change', function(){
+    $('.genepiCmd').hide();
+
+    if ($(this).val()) {
+        $('.genepiCmd[data-node_proto="'+$(this).val()+'"]').show();
+    }
+});
+
+
+function addCmdToTable(_cmd) {
     if (!isset(_cmd)) {
         var _cmd = {configuration: {}};
     }

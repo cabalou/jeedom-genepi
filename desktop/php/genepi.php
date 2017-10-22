@@ -5,6 +5,23 @@ if (!isConnect('admin')) {
 $plugin = plugin::byId('genepi');
 sendVarToJS('eqType', $plugin->getId());
 $eqLogics = eqLogic::byType($plugin->getId());
+
+
+// Recuperation des noeuds genepi et de leur capa
+$genepiConfig = new genepiConfig();
+
+/*
+foreach ($genepiConfig->getNodes() as $node) {
+  echo "Node = $node</br>";
+  foreach ($genepiConfig->getNodeCapabilities($node) as $capa) {
+//  foreach ($genepiConfig->getNodeCapabilities($node) as $key => $value) {
+//    echo "key : $key => $value</br>";
+    echo " capa : $capa</br>";
+  }
+}
+*/
+
+
 ?>
 
 <div class="row row-overflow">
@@ -65,6 +82,7 @@ foreach ($eqLogics as $eqLogic) {
     <br/>
     <form class="form-horizontal">
       <fieldset>
+        <legend><i class="fa fa-wrench"></i>  {{Configuration}}</legend>
         <div class="form-group">
           <label class="col-sm-3 control-label">{{Nom de l'équipement GenePi}}</label>
           <div class="col-sm-3">
@@ -90,36 +108,116 @@ foreach (object::all() as $object) {
         <div class="col-sm-6">
           <?php
 foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
-	echo '<label class="checkbox-inline">';
-	echo '<input type="checkbox" class="eqLogicAttr" data-l1key="category" data-l2key="' . $key . '" />' . $value['name'];
-	echo '</label>';
+          echo '<label class="checkbox-inline">';
+          echo '<input type="checkbox" class="eqLogicAttr" data-l1key="category" data-l2key="' . $key . '" />' . $value['name'];
+          echo '</label>';
 }
-?>
+          ?>
+        </div>
        </div>
-     </div>
-     <div class="form-group">
-      <label class="col-sm-3 control-label"></label>
-      <div class="col-sm-9">
-        <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isEnable" checked/>{{Activer}}</label>
-        <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked/>{{Visible}}</label>
+       <div class="form-group">
+        <label class="col-sm-3 control-label"></label>
+        <div class="col-sm-9">
+          <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isEnable" checked/>{{Activer}}</label>
+          <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked/>{{Visible}}</label>
+        </div>
+       </div>
+
+
+       <legend><i class="fa fa-wrench"></i>  {{Equipement}}</legend>
+
+       <div class="form-group debuggen">
+       </div>
+
+       <div class="form-group">
+        <label class="col-sm-3 control-label" >{{Noeud GenePi}}</label>
+        <div class="col-sm-3">
+         <select id="sel_node" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="node">
+           <?php
+             foreach ($genepiConfig->getNodes() as $node) {
+               echo '<option value="' . "$node" . '">' . "$node" . '</option>';
+             }
+           ?>
+         </select>
+        </div>
+       </div>
+
+       <div class="form-group">
+        <label class="col-sm-3 control-label" >{{Protocole}}</label>
+        <div class="col-sm-3">
+         <select id="sel_proto" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="proto">
+           <?php
+             foreach ($genepiConfig->getNodes() as $node) {
+               foreach ($genepiConfig->getProto($node) as $proto) {
+                 echo '<option class="genepi-proto" data-proto="' . "$node.$proto" . '" value="' . $proto . '">' . "$proto" . '</option>';
+               }
+             }
+           ?>
+         </select>
+        </div>
+       </div>
+
+       <div class="form-group">
+        <label class="col-sm-3 control-label" >{{Type d'équipement}}</label>
+        <div class="col-sm-3">
+         <select id="sel_type" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="type">
+           <?php
+             foreach ($genepiConfig->getNodes() as $node) {
+               foreach ($genepiConfig->getProto($node) as $proto) {
+                 foreach ($genepiConfig->getType($node, $proto) as $type) {
+                   echo '<option class="genepi-type" data-type="' . "$node.$proto.$type" . '" value="' . $type . '">' . "$type" . '</option>';
+                 }
+               }
+             }
+           ?>
+         </select>
+        </div>
+       </div>
+
+
+       <legend><i class="fa fa-wrench"></i>  {{Paramètres de l'équipement}}</legend>
+       <?php
+         foreach ($genepiConfig->getNodes() as $node) {
+           foreach ($genepiConfig->getProto($node) as $proto) {
+             foreach ($genepiConfig->getType($node, $proto) as $type) {
+//print_r($genepiConfig->getParam($node, $proto, $type));
+               foreach ($genepiConfig->getParam($node, $proto, $type) as $paramName => $paramType) {
+                 echo '<div class="form-group genepi-param" data-param="' . "$node.$proto.$type" . '">';
+                 echo ' <label class="col-sm-3 control-label">{{' . $paramName . '}}</label>';
+                 echo '</div>';
+               }
+             }
+           }
+         }
+       ?>
+
+
+       <legend><i class="fa fa-wrench"></i>  {{Choix des commandes}}</legend>
+       <?php
+/*
+        foreach ($nodes as $node) {
+            echo '<div class="genepi-cmd" data-cmd="' . "$node" . '">';
+            echo '</div>';
+        }
+/*
+      <div class="genepiCmd" data-node_proto="rpi2.HomeEasy">
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{ID}}</label>
+          <div class="col-sm-3">
+            <input type="text" class="form-control" style="display : none;" />
+            <input type="text" class="form-control" placeholder="{{Nom de l'équipement GenePi}}"/>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="form-group">
-      <label class="col-sm-3 control-label">{{Ville}}</label>
-      <div class="col-sm-3">
-        <input type="text" class="eqLogicAttr configuration form-control" data-l1key="configuration" data-l2key="city" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="col-sm-3 control-label" ></label>
-      <div class="col-sm-9">
-        <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="fullMobileDisplay" />{{Affichage complet en mobile}}</label>
-        <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="modeImage" />{{Mode image}}</label>
-      </div>
-    </div>
-  </fieldset>
-</form>
-</div>
+*/
+       ?>
+
+      </fieldset>
+    </form>
+
+   </div>
+
+
 <div role="tabpanel" class="tab-pane" id="commandtab">
   <br/>
   <table id="table_cmd" class="table table-bordered table-condensed">
