@@ -10,19 +10,10 @@ $eqLogics = eqLogic::byType($plugin->getId());
 // Recuperation des noeuds genepi et de leur capa
 $genepiConfig = new genepiConfig();
 
-/*
-foreach ($genepiConfig->getNodes() as $node) {
-  echo "Node = $node</br>";
-  foreach ($genepiConfig->getNodeCapabilities($node) as $capa) {
-//  foreach ($genepiConfig->getNodeCapabilities($node) as $key => $value) {
-//    echo "key : $key => $value</br>";
-    echo " capa : $capa</br>";
-  }
-}
-*/
-
-
 ?>
+       <div class="form-group debuggen">
+       </div>
+
 
 <div class="row row-overflow">
   <div class="col-lg-2">
@@ -126,9 +117,6 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
 
        <legend><i class="fa fa-wrench"></i>  {{Equipement}}</legend>
 
-       <div class="form-group debuggen">
-       </div>
-
        <div class="form-group">
         <label class="col-sm-3 control-label" >{{Noeud GenePi}}</label>
         <div class="col-sm-3">
@@ -149,7 +137,7 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
            <?php
              foreach ($genepiConfig->getNodes() as $node) {
                foreach ($genepiConfig->getProto($node) as $proto) {
-                 echo '<option class="genepi-proto" data-proto="' . "$node.$proto" . '" value="' . $proto . '">' . "$proto" . '</option>';
+                 echo '<option class="genepi-proto" data-node="' . $node . '" value="' . $proto . '">' . "$proto" . '</option>';
                }
              }
            ?>
@@ -165,7 +153,7 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
              foreach ($genepiConfig->getNodes() as $node) {
                foreach ($genepiConfig->getProto($node) as $proto) {
                  foreach ($genepiConfig->getType($node, $proto) as $type) {
-                   echo '<option class="genepi-type" data-type="' . "$node.$proto.$type" . '" value="' . $type . '">' . "$type" . '</option>';
+                   echo '<option class="genepi-type" data-proto="' . "$node.$proto" . '" value="' . $type . '">' . "$type" . '</option>';
                  }
                }
              }
@@ -176,40 +164,76 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
 
 
        <legend><i class="fa fa-wrench"></i>  {{Paramètres de l'équipement}}</legend>
-       <?php
+       <div class="form-group">
+        <?php
          foreach ($genepiConfig->getNodes() as $node) {
            foreach ($genepiConfig->getProto($node) as $proto) {
              foreach ($genepiConfig->getType($node, $proto) as $type) {
-//print_r($genepiConfig->getParam($node, $proto, $type));
                foreach ($genepiConfig->getParam($node, $proto, $type) as $paramName => $paramType) {
-                 echo '<div class="form-group genepi-param" data-param="' . "$node.$proto.$type" . '">';
+
+                 echo '<div class="form-group genepi-param" data-type="' . "$node.$proto.$type" . '">';
                  echo ' <label class="col-sm-3 control-label">{{' . $paramName . '}}</label>';
+                 echo ' <div class="col-sm-3">';
+
+                 switch ($paramType) {
+                   case ('string') :
+                     echo '  <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="param.' . $paramName . '"/>';
+                     break;
+                   case ('int') :
+                     echo '  <input type="number" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="param.' . $paramName . '"/>';
+                     break;
+//TODO: handle ranges
+                   default:
+                     echo ' <label class="col-sm-3 control-label">{{' . $paramType . ' inconnu}}</label>';
+                     break;
+                 }
+
+                 echo ' </div>';
                  echo '</div>';
                }
              }
            }
          }
-       ?>
-
+        ?>
+       </div>
 
        <legend><i class="fa fa-wrench"></i>  {{Choix des commandes}}</legend>
-       <?php
-/*
-        foreach ($nodes as $node) {
-            echo '<div class="genepi-cmd" data-cmd="' . "$node" . '">';
-            echo '</div>';
-        }
-/*
-      <div class="genepiCmd" data-node_proto="rpi2.HomeEasy">
-        <div class="form-group">
-          <label class="col-sm-3 control-label">{{ID}}</label>
-          <div class="col-sm-3">
-            <input type="text" class="form-control" style="display : none;" />
-            <input type="text" class="form-control" placeholder="{{Nom de l'équipement GenePi}}"/>
-          </div>
-        </div>
-      </div>
-*/
+       <div class="form-group">
+        <?php
+         foreach ($genepiConfig->getNodes() as $node) {
+           foreach ($genepiConfig->getProto($node) as $proto) {
+             foreach ($genepiConfig->getType($node, $proto) as $type) {
+               foreach ($genepiConfig->getCmd($node, $proto, $type) as $cmdName => $cmdObj) {
+
+                 echo '<div class="form-group genepi-cmd" data-type="' . "$node.$proto.$type" . '">';
+                 echo ' <label class="genepi-cmd-name col-sm-3 control-label">{{' . $cmdName . '}}</label>';
+                 echo ' <div class="col-sm-3">';
+
+                 foreach ($cmdObj as $cmdParam => $cmdType) {
+                   if (($cmdParam === 'action') || ($cmdParam === 'state')) {
+                     echo '<input class="genepi-cmd-' . $cmdParam . '" data-cmd-param-type="' . $cmdType . '" style="display : none;">';
+                   } else {
+                     switch ($cmdType) {
+                       case ('string') :
+                         echo '  <input type="text" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
+                         break;
+                       case ('int') :
+                         echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
+                         break;
+//TODO: handle ranges
+                       default:
+                         echo ' <label class="col-sm-3 control-label">{{' . $cmdType . ' inconnu}}</label>';
+                         break;
+                     }
+                   }
+                 }
+                 echo ' </div>';
+                 echo ' <a class="genepi-cmd-add btn btn-success col-sm-3">Ajouter</a>';
+                 echo '</div>';
+               }
+             }
+           }
+         }
        ?>
 
       </fieldset>

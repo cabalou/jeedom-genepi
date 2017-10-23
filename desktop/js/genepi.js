@@ -21,12 +21,12 @@
 // Node selection
 $('#sel_node').on('change', function(){
     $('.genepi-proto').hide();
-    $('.genepi-type').hide();
     if ($(this).val()) {
-        $('.genepi-proto[data-proto^="' + $(this).val() + '."]').show();
-        $('#sel_proto').val('');
-        $('#sel_type').val('');
+        $('.genepi-proto[data-node="' + $(this).val() + '"]').show();
+        $('#sel_proto').val(null);
+        $('#sel_type').val(null);
     }
+    $('#sel_proto').change();
 });
 
 
@@ -34,9 +34,10 @@ $('#sel_node').on('change', function(){
 $('#sel_proto').on('change', function(){
     $('.genepi-type').hide();
     if ($(this).val()) {
-        $('.genepi-type[data-type^="' + $('#sel_node').val() + '.' + $(this).val() + '."]').show();
-        $('#sel_type').val('');
+        $('.genepi-type[data-proto="' + $('#sel_node').val() + '.' + $(this).val() + '"]').show();
+        $('#sel_type').val(null);
     }
+    $('#sel_type').change();
 });
 
 
@@ -44,26 +45,85 @@ $('#sel_proto').on('change', function(){
 $('#sel_type').on('change', function(){
     //equip params
     $('.genepi-param').hide();
+    $('.genepi-param').find('input').removeClass('eqLogicAttr').val(null);
     if ($(this).val()) {
-        $('.genepi-param[data-param="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '"]').show();
+        $('.genepi-param[data-type="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '"]').show();
+        $('.genepi-param[data-type="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '"]').find('input').addClass('eqLogicAttr');
     }
 
-    //cmd
+    //choix cmd
     $('.genepi-cmd').hide();
     if ($(this).val()) {
-//        $('.genepi-cmd[data-cmd^="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '."]').show();
+        $('.genepi-cmd[data-type="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '"]').show();
     }
 });
 
 
-$('#sel_node_proto').on('change', function(){
-    $('.genepiCmd').hide();
+//ajout des commandes
+$('.genepi-cmd-add').on('click', function(){
 
-    if ($(this).val()) {
-        $('.genepiCmd[data-node_proto="'+$(this).val()+'"]').show();
+$('.debuggen').empty();
+
+    var param = {};
+
+    $(this).closest('.genepi-cmd').find('.genepi-cmd-attr').each(function () {
+        if ($(this).val() == '') {
+            alert("Le champ ne peut être vide");
+            throw 'Le champ ne peut être vide';
+//TODO: faire mieux
+        }
+
+        param[$(this).attr('data-cmd-param-name')] = $(this).val();
+    });
+
+
+    var cmdName    = $(this).closest('.genepi-cmd').find('.genepi-cmd-name').text();
+    var actionType = $(this).closest('.genepi-cmd').find('.genepi-cmd-action').attr('data-cmd-param-type');
+    var stateType  = $(this).closest('.genepi-cmd').find('.genepi-cmd-state' ).attr('data-cmd-param-type');
+
+    if (typeof(actionType) !== 'undefined') {
+        switch (actionType) {
+          case 'button':
+//TODO name
+            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'other', configuration: param});
+            break;
+          case 'toggle':
+            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'other', configuration: param});
+            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'other', configuration: param});
+            break;
+          case 'slider':
+            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'slider', configuration: param});
+            break;
+          case 'color':
+            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'color', configuration: param});
+            break;
+          default:
+            alert('Type d\'action non reconnu : ' + actionType);
+            break;
+        }
     }
+
+    if (typeof(stateType) !== 'undefined') {
+        switch (stateType) {
+          case 'toggle':
+            addCmdToTableDebug({name: cmdName, type: 'info', subType: 'binary', configuration: param});
+            break;
+          case 'slider':
+            break;
+          case 'color':
+            break;
+          default:
+            alert('Type d\'info non reconnu : ' + stateType);
+            break;
+        }
+    }
+
+
 });
 
+function addCmdToTableDebug(_cmd) {
+$('.debuggen').append($("<p></p>").text("Addcmd: " + JSON.stringify(_cmd) ));
+}
 
 function addCmdToTable(_cmd) {
     if (!isset(_cmd)) {

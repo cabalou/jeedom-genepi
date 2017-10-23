@@ -33,6 +33,7 @@ class genepiConfig {
         $this->configTree = array();
 
         //get Nodes
+//TODO: getConfig
         $nodes = array_map(function ($val) { return substr($val, 0, -5); }, preg_grep("/\.json$/", scandir(self::getPath() ) ));
 
         // parse config file
@@ -55,6 +56,10 @@ class genepiConfig {
 
     public function getParam($node, $proto, $type) {
         return $this->configTree[$node][$proto][$type]['param'];
+    }
+
+    public function getCmd($node, $proto, $type) {
+        return $this->configTree[$node][$proto][$type]['cmd'];
     }
 }
 
@@ -148,7 +153,13 @@ class genepi extends eqLogic {
     }
 
     public function preSave() {
-        
+
+        foreach ($this->getConfiguration() as $paramName => $paramValue) {
+            if (preg_match("/^param\./", $paramName) and ($paramValue === '')) {
+                $this->setConfiguration($paramName, null);
+            log::add('genepi','debug','preSave: deleting empty config: ' . $paramName);
+            }
+        }
     }
 
     public function postSave() {
