@@ -22,9 +22,10 @@
 $('#sel_node').on('change', function(){
     $('.genepi-proto').hide();
     if ($(this).val()) {
-        $('.genepi-proto[data-node="' + $(this).val() + '"]').show();
-        $('#sel_proto').val(null);
-        $('#sel_type').val(null);
+        $('.genepi-proto[data-node="' + $(this).val() + '"]').show().first().prop('selected', 'selected');
+//        $('.genepi-proto[data-node="' + $(this).val() + '"]').show();
+//        $('#sel_proto').val(null);
+//        $('#sel_type').val(null);
     }
     $('#sel_proto').change();
 });
@@ -34,8 +35,8 @@ $('#sel_node').on('change', function(){
 $('#sel_proto').on('change', function(){
     $('.genepi-type').hide();
     if ($(this).val()) {
-        $('.genepi-type[data-proto="' + $('#sel_node').val() + '.' + $(this).val() + '"]').show();
-        $('#sel_type').val(null);
+        $('.genepi-type[data-proto="' + $('#sel_node').val() + '.' + $(this).val() + '"]').show().first().prop('selected', 'selected');
+//        $('#sel_type').val(null);
     }
     $('#sel_type').change();
 });
@@ -56,6 +57,9 @@ $('#sel_type').on('change', function(){
     if ($(this).val()) {
         $('.genepi-cmd[data-type="' + $('#sel_node').val() + '.' + $('#sel_proto').val() + '.' + $(this).val() + '"]').show();
     }
+
+    //suppression des cmd
+    $('tr.cmd').remove();
 });
 
 
@@ -63,6 +67,10 @@ $('#sel_type').on('change', function(){
 $('.genepi-cmd-add').on('click', function(){
 
 $('.debuggen').empty();
+
+    var cmdName    = $(this).closest('.genepi-cmd').find('.genepi-cmd-name').text();
+    var actionType = $(this).closest('.genepi-cmd').find('.genepi-cmd-action').attr('data-cmd-param-type');
+    var stateType  = $(this).closest('.genepi-cmd').find('.genepi-cmd-state' ).attr('data-cmd-param-type');
 
     var param = {};
 
@@ -74,43 +82,54 @@ $('.debuggen').empty();
         }
 
         param[$(this).attr('data-cmd-param-name')] = $(this).val();
+        cmdName += ' ' + $(this).attr('data-cmd-param-name') + ' ' + $(this).val();
     });
 
-
-    var cmdName    = $(this).closest('.genepi-cmd').find('.genepi-cmd-name').text();
-    var actionType = $(this).closest('.genepi-cmd').find('.genepi-cmd-action').attr('data-cmd-param-type');
-    var stateType  = $(this).closest('.genepi-cmd').find('.genepi-cmd-state' ).attr('data-cmd-param-type');
+    var cmdLogicalId = cmdName.replace(/ /g, '_');
 
     if (typeof(actionType) !== 'undefined') {
+//        var match = /^\[(\d+)\-(\d+)\]$/.exec(actionType);
+        var match = 0;
+
         switch (actionType) {
           case 'button':
-//TODO name
-            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'other', configuration: param});
+            addCmdToTable({name: cmdName, logicalId: cmdLogicalId+'.btn', type: 'action', subType: 'other', configuration: param});
             break;
           case 'toggle':
-            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'other', configuration: param});
-            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'other', configuration: param});
+            addCmdToTable({name: cmdName+' on' , logicalId: cmdLogicalId+'.on' , type: 'action', subType: 'other', configuration: param});
+            addCmdToTable({name: cmdName+' off', logicalId: cmdLogicalId+'.off', type: 'action', subType: 'other', configuration: param});
             break;
-          case 'slider':
-            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'slider', configuration: param});
+          case ( (match = /^\[(\d+)\-(\d+)\]$/.exec(actionType)) && actionType):
+            var sliderParam = { ...param, minValue: match[1], maxValue: match[2] };
+            addCmdToTable({name: cmdName+' slider', logicalId: cmdLogicalId+'.slider', type: 'action', subType: 'slider', configuration: sliderParam});
             break;
           case 'color':
-            addCmdToTableDebug({name: cmdName, type: 'action', subType: 'color', configuration: param});
+            addCmdToTable({name: cmdName+' couleur', logicalId: cmdLogicalId+'.color', type: 'action', subType: 'color', configuration: param});
             break;
           default:
             alert('Type d\'action non reconnu : ' + actionType);
             break;
         }
+
+// TODO info not visible
     }
 
     if (typeof(stateType) !== 'undefined') {
+        var match = 0;
+
         switch (stateType) {
           case 'toggle':
-            addCmdToTableDebug({name: cmdName, type: 'info', subType: 'binary', configuration: param});
+            addCmdToTable({name: cmdName, logicalId: cmdLogicalId, type: 'info', subType: 'binary', configuration: param});
             break;
-          case 'slider':
+          case 'int':
+            addCmdToTable({name: cmdName, logicalId: cmdLogicalId, type: 'info', subType: 'numeric', configuration: param});
+            break;
+          case ( (match = /^\[(\d+)\-(\d+)\]$/.exec(stateType)) && stateType):
+            var sliderParam = { ...param, minValue: match[1], maxValue: match[2] };
+            addCmdToTable({name: cmdName, logicalId: cmdLogicalId, type: 'info', subType: 'numeric', configuration: sliderParam});
             break;
           case 'color':
+            addCmdToTable({name: cmdName, logicalId: cmdLogicalId, type: 'info', subType: 'other', configuration: param});
             break;
           default:
             alert('Type d\'info non reconnu : ' + stateType);
@@ -121,9 +140,6 @@ $('.debuggen').empty();
 
 });
 
-function addCmdToTableDebug(_cmd) {
-$('.debuggen').append($("<p></p>").text("Addcmd: " + JSON.stringify(_cmd) ));
-}
 
 function addCmdToTable(_cmd) {
     if (!isset(_cmd)) {
@@ -133,12 +149,21 @@ function addCmdToTable(_cmd) {
         _cmd.configuration = {};
     }
     var tr = '<tr class="cmd" data-cmd_id="' + init(_cmd.id) + '">';
+    tr += '<td><input class="cmdAttr form-control input-sm" data-l1key="id" style="width : 50px;"></td>';
+    tr += '<td><input class="cmdAttr form-control input-sm" data-l1key="logicalId" style="width : 100px;"></td>';
+    tr += '<td><input class="cmdAttr form-control input-sm" data-l1key="name" style="width : 140px;" placeholder="{{Nom}}"></td>';
+    tr += '<td><input class="cmdAttr form-control input-sm" data-l1key="type" style="width : 60px;"></td>';
+    tr += '<td><input class="cmdAttr form-control input-sm" data-l1key="subType" style="width : 60px;"></td>';
+    tr += '<td><input class="cmdAttr form-control input-sm" data-l1key="value" style="width : 50px;"></td>';
     tr += '<td>';
-    tr += '<input class="cmdAttr form-control input-sm" data-l1key="id" style="display : none;">';
-    tr += '<input class="cmdAttr form-control input-sm" data-l1key="type" style="display : none;">';
-    tr += '<input class="cmdAttr form-control input-sm" data-l1key="subType" style="display : none;">';
-    tr += '<input class="cmdAttr form-control input-sm" data-l1key="name" style="width : 140px;" placeholder="{{Nom}}"></td>';
+    Object.keys(_cmd.configuration).forEach(function (param) {
+      tr += '<div><label>' + param;
+      tr += '<input class="cmdAttr form-control input-sm" data-l1key="configuration" data-l2key="' + param + '" style="width : 60px;">';
+      tr += '</label></div>';
+    });
+    tr += '</td>';
     tr += '<td>';
+    tr += '<span><label class="checkbox-inline"><input type="checkbox" class="cmdAttr checkbox-inline" data-l1key="isVisible" checked/>{{Visible}}</label></span> ';
     if(!isset(_cmd.type) || _cmd.type == 'info' ){
         tr += '<span><label class="checkbox-inline"><input type="checkbox" class="cmdAttr checkbox-inline" data-l1key="isHistorized" checked/>{{Historiser}}</label></span> ';
     }
@@ -148,11 +173,15 @@ function addCmdToTable(_cmd) {
         tr += '<a class="btn btn-default btn-xs cmdAction expertModeVisible" data-action="configure"><i class="fa fa-cogs"></i></a> ';
         tr += '<a class="btn btn-default btn-xs cmdAction" data-action="test"><i class="fa fa-rss"></i> {{Tester}}</a>';
     }
+    tr += '<i class="fa fa-minus-circle pull-right cmdAction cursor" data-action="remove"></i>';
+    tr += '</td>';
     tr += '</tr>';
     $('#table_cmd tbody').append(tr);
     $('#table_cmd tbody tr:last').setValues(_cmd, '.cmdAttr');
+/*
     if (isset(_cmd.type)) {
         $('#table_cmd tbody tr:last .cmdAttr[data-l1key=type]').value(init(_cmd.type));
     }
     jeedom.cmd.changeType($('#table_cmd tbody tr:last'), init(_cmd.subType));
+*/
 }

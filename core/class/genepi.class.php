@@ -144,6 +144,36 @@ class genepi extends eqLogic {
 
     /*     * *********************Méthodes d'instance************************* */
 
+    public function preSave() {
+
+        foreach ($this->getConfiguration() as $paramName => $paramValue) {
+            if (preg_match("/^param\./", $paramName) and ($paramValue === '')) {
+                $this->setConfiguration($paramName, null);
+                log::add('genepi','debug','preSave: deleting empty config: ' . $paramName);
+            }
+        }
+    }
+
+    public function postAjax() {
+        $cmdList = $this->getCmd();
+
+        // mapping des value des cmd action
+        foreach ($cmdList as $cmd) {
+            log::add('genepi','debug','postAjax: cmd: ' . $cmd->getId() . ' - ' . $cmd->getName() . ' - ' . $cmd->getLogicalId() . ' - ' . $cmd->getType() . ' - ' . $cmd->getValue());
+
+            if ( ($cmd->getType() === 'action') && ($cmd->getValue() == null) && (preg_match('/(.*)\.(btn|on|off|slider|color)$/', $cmd->getLogicalId(), $match)) ) {
+                $infoCmd = cmd::byEqLogicIdAndLogicalId($cmd->getEqLogic_id(), $match[1]);
+                if (is_object($infoCmd)) {
+                    log::add('genepi','debug','postAjax: utilisation de ' . $infoCmd->getId() . ' comme valeur pour la commande ' . $cmd->getID());
+                    $cmd->setValue($infoCmd->getId());
+                    $cmd->save();
+                    $infoCmd->setIsVisible(false);
+                    $infoCmd->save();
+                }
+            }
+        }
+    }
+/*
     public function preInsert() {
         
     }
@@ -152,18 +182,8 @@ class genepi extends eqLogic {
         
     }
 
-    public function preSave() {
-
-        foreach ($this->getConfiguration() as $paramName => $paramValue) {
-            if (preg_match("/^param\./", $paramName) and ($paramValue === '')) {
-                $this->setConfiguration($paramName, null);
-            log::add('genepi','debug','preSave: deleting empty config: ' . $paramName);
-            }
-        }
-    }
-
     public function postSave() {
-        
+
     }
 
     public function preUpdate() {
@@ -181,7 +201,7 @@ class genepi extends eqLogic {
     public function postRemove() {
         
     }
-
+*/
     /*
      * Non obligatoire mais permet de modifier l'affichage du widget si vous en avez besoin
       public function toHtml($_version = 'dashboard') {
@@ -209,7 +229,36 @@ class genepiCmd extends cmd {
      */
 
     public function execute($_options = array()) {
-        
+        log::add('genepi','debug','execute: cmd: ' . $this->getId() . ' - ' . $this->getName() . ' - ' . $this->getLogicalId());
+        log::add('genepi','debug','execute: options: ' . json_encode($_options));
+
+        $infoCmd = cmd::byId($this->getValue());
+        if ( is_object($infoCmd) ) {
+
+            $info = '';
+            switch ($this->getSubType()) {
+                case 'other':
+                    $info = preg_match('/\.on$/', $this->getLogicalId());
+                    break;
+                case 'color':
+                    $info = $_options['color'];
+                    break;
+                case 'slider':
+                    $info = $_options['slider'];
+                    break;
+                default:
+                    $info = "pouet";
+                    break;
+            }
+
+            if ($info !== '') {
+                log::add('genepi','debug','execute: info: ' . $infoCmd->getId() . ' - ' . $infoCmd->getName() . ' - ' . $infoCmd->getLogicalId(). ' - valeur : ' . $info);
+                $infoCmd->event($info);
+            }
+
+        } else {
+            log::add('genepi','debug','execute: info: pas de cmd info associée');
+        }
     }
 
     /*     * **********************Getteur Setteur*************************** */

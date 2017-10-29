@@ -182,7 +182,9 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
                    case ('int') :
                      echo '  <input type="number" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="param.' . $paramName . '"/>';
                      break;
-//TODO: handle ranges
+                   case (preg_match('/^\[(\d+)\-(\d+)\]$/', $paramType, $match) ? true : false) :
+                     echo '  <input type="number" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="param.' . $paramName . '" placeholder="Valeur entre ' . $match[1] . ' et ' . $match[2] . '"/>';
+                     break;
                    default:
                      echo ' <label class="col-sm-3 control-label">{{' . $paramType . ' inconnu}}</label>';
                      break;
@@ -197,6 +199,14 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
         ?>
        </div>
 
+      </fieldset>
+    </form>
+   </div>
+
+<div role="tabpanel" class="tab-pane" id="commandtab">
+  <br/>
+  <form class="form-horizontal">
+    <fieldset>
        <legend><i class="fa fa-wrench"></i>  {{Choix des commandes}}</legend>
        <div class="form-group">
         <?php
@@ -220,7 +230,9 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
                        case ('int') :
                          echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
                          break;
-//TODO: handle ranges
+                       case (preg_match('/^\[(\d+)\-(\d+)\]$/', $cmdType, $match) ? true : false) :
+                         echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '" placeholder="Valeur entre ' . $match[1] . ' et ' . $match[2] . '"/>';
+                         break;
                        default:
                          echo ' <label class="col-sm-3 control-label">{{' . $cmdType . ' inconnu}}</label>';
                          break;
@@ -236,18 +248,23 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
          }
        ?>
 
-      </fieldset>
-    </form>
-
-   </div>
 
 
-<div role="tabpanel" class="tab-pane" id="commandtab">
-  <br/>
+    </fieldset>
+  </form>
+  <legend><i class="fa fa-wrench"></i>  {{Commandes}}</legend>
   <table id="table_cmd" class="table table-bordered table-condensed">
     <thead>
       <tr>
-        <th>{{Nom}}</th><th>{{Options}}</th><th></th>
+        <th>{{ID}}</th>
+        <th>{{LogicalID}}</th>
+        <th>{{Nom}}</th>
+        <th>{{Type}}</th>
+        <th>{{SubType}}</th>
+        <th>{{Value}}</th>
+        <th>{{Configuration}}</th>
+        <th>{{Options}}</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
