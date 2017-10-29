@@ -23,9 +23,6 @@ $('#sel_node').on('change', function(){
     $('.genepi-proto').hide();
     if ($(this).val()) {
         $('.genepi-proto[data-node="' + $(this).val() + '"]').show().first().prop('selected', 'selected');
-//        $('.genepi-proto[data-node="' + $(this).val() + '"]').show();
-//        $('#sel_proto').val(null);
-//        $('#sel_type').val(null);
     }
     $('#sel_proto').change();
 });
@@ -36,7 +33,6 @@ $('#sel_proto').on('change', function(){
     $('.genepi-type').hide();
     if ($(this).val()) {
         $('.genepi-type[data-proto="' + $('#sel_node').val() + '.' + $(this).val() + '"]').show().first().prop('selected', 'selected');
-//        $('#sel_type').val(null);
     }
     $('#sel_type').change();
 });
@@ -66,8 +62,6 @@ $('#sel_type').on('change', function(){
 //ajout des commandes
 $('.genepi-cmd-add').on('click', function(){
 
-$('.debuggen').empty();
-
     var cmdName    = $(this).closest('.genepi-cmd').find('.genepi-cmd-name').text();
     var actionType = $(this).closest('.genepi-cmd').find('.genepi-cmd-action').attr('data-cmd-param-type');
     var stateType  = $(this).closest('.genepi-cmd').find('.genepi-cmd-state' ).attr('data-cmd-param-type');
@@ -85,10 +79,10 @@ $('.debuggen').empty();
         cmdName += ' ' + $(this).attr('data-cmd-param-name') + ' ' + $(this).val();
     });
 
-    var cmdLogicalId = cmdName.replace(/ /g, '_');
+    var cmdLogicalId = cmdName;
+//    var cmdLogicalId = cmdName.replace(/ /g, '_');
 
     if (typeof(actionType) !== 'undefined') {
-//        var match = /^\[(\d+)\-(\d+)\]$/.exec(actionType);
         var match = 0;
 
         switch (actionType) {
@@ -110,8 +104,6 @@ $('.debuggen').empty();
             alert('Type d\'action non reconnu : ' + actionType);
             break;
         }
-
-// TODO info not visible
     }
 
     if (typeof(stateType) !== 'undefined') {

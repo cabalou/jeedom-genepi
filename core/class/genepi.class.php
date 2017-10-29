@@ -75,13 +75,13 @@ class genepi extends eqLogic {
 
         $daemonURL = "http://127.0.0.1:8081/";
 
-        log::add('genepi','debug','RPC call with method: ' . $method);
+        log::add('genepi','info','RPC call - methode : ' . $method . ' - param : ' . json_encode($param));
 
         $json = json_encode([
             "jsonrpc" => "2.0",
             "id" => 1,
             "method" => $method,
-            "param" => $param,
+            "params" => $param,
         ]);
 
         $curl = curl_init($daemonURL);
@@ -97,12 +97,25 @@ class genepi extends eqLogic {
         $curl_response = curl_exec($curl);
         curl_close($curl);
 
-        if(curl_errno($curl)){
-            log::add('genepi','error','Daemon error: ' . $curl_error($curl));
-            return null;
-        } else {
+//        if (curl_errno($curl)){
+        if ($curl_response) {
             log::add('genepi','debug','Daemon response: ' . $curl_response);
-            return $curl_response;
+            $result = json_decode($curl_response, true);
+            if (array_key_exists('error', $result)) {
+                // erreur RPC call
+                log::add('genepi','error','Daemon RPC error: ' . $result['error']['message'] . ' - ' . json_encode($result['error']['data']) );
+                return null;
+
+            } else {
+                // RPC call valide
+                log::add('genepi','info','RPC call result: ' . json_encode($result['result']));
+                return $result['result'];
+            }
+        } else {
+            // erreur sur la requete curl
+            log::add('genepi','error','Daemon curl error: ' . curl_error($curl));
+            log::add('genepi','error','Daemon curl error: ' . curl_strerror(curl_errno($curl)));
+            return null;
         }
     }
 
@@ -117,6 +130,10 @@ class genepi extends eqLogic {
     }
 
 
+    // reception de donnees
+    public static function receiveData($data) {
+        log::add('genepi','info','Donnees recues : ' . json_encode($data));
+    }
 
     /*
      * Fonction exécutée automatiquement toutes les minutes par Jeedom
@@ -146,6 +163,7 @@ class genepi extends eqLogic {
 
     public function preSave() {
 
+        // suppression des params vides
         foreach ($this->getConfiguration() as $paramName => $paramValue) {
             if (preg_match("/^param\./", $paramName) and ($paramValue === '')) {
                 $this->setConfiguration($paramName, null);
@@ -229,35 +247,65 @@ class genepiCmd extends cmd {
      */
 
     public function execute($_options = array()) {
-        log::add('genepi','debug','execute: cmd: ' . $this->getId() . ' - ' . $this->getName() . ' - ' . $this->getLogicalId());
-        log::add('genepi','debug','execute: options: ' . json_encode($_options));
 
+        $equip = eqLogic::byId($this->getEqLogic_id());
+        $equipConfig = $equip->getConfiguration();
+
+        $sendParam = array(
+            "node"     => $equipConfig['node'],
+            "protocol" => $equipConfig['proto'],
+            "type"     => $equipConfig['type']
+        );
+
+        // ajout des param de l'equipement
+        foreach ($equipConfig as $param => $value) {
+            if (preg_match('/^param\.(.+)$/', $param, $match)) {
+                $sendParam[$match[1]] = $value;
+            }
+        }
+
+        // commande
+        if (!preg_match('/(.*)\.(btn|on|off|slider|color)$/', $this->getLogicalId(), $match)) { throw new Exception(__('LogicalId non reconnu : ' . $this->getLogicalId() . 'pour la commande ' . $this->getId() )); }
+
+        $sendParam['cmd'] = $match[1];
+
+        // calcul de la valeur
+        switch ($this->getSubType()) {
+            case 'other':
+                switch ($match[2]) {
+                    case 'on':
+                        $sendParam['value'] = 1;
+                        break;
+                    case 'off':
+                        $sendParam['value'] = 0;
+                        break;
+                }
+                break;
+            case 'color':
+                $sendParam['value'] = $_options['color'];
+                break;
+            case 'slider':
+                $sendParam['value'] = $_options['slider'];
+                break;
+            default:
+                throw new Exception(__('Pas de subType configure pour la commande ' . $this->getId() ));
+                break;
+        }
+
+        // ancienne valeur
         $infoCmd = cmd::byId($this->getValue());
-        if ( is_object($infoCmd) ) {
+        if ( is_object($infoCmd) and ($infoCmd->getCache('value', false)) ) {
+            $sendParam['oldValue'] = $infoCmd->getCache('value');
+        }
 
-            $info = '';
-            switch ($this->getSubType()) {
-                case 'other':
-                    $info = preg_match('/\.on$/', $this->getLogicalId());
-                    break;
-                case 'color':
-                    $info = $_options['color'];
-                    break;
-                case 'slider':
-                    $info = $_options['slider'];
-                    break;
-                default:
-                    $info = "pouet";
-                    break;
-            }
 
-            if ($info !== '') {
-                log::add('genepi','debug','execute: info: ' . $infoCmd->getId() . ' - ' . $infoCmd->getName() . ' - ' . $infoCmd->getLogicalId(). ' - valeur : ' . $info);
-                $infoCmd->event($info);
-            }
+        $result = genepi::sendToDaemon('send', $sendParam);
+        log::add('genepi','debug','execute response : ' . json_encode($result));
 
-        } else {
-            log::add('genepi','debug','execute: info: pas de cmd info associée');
+// retour d'exec
+        if ( is_object($infoCmd) and ($sendParam['value'] !== '') ) {
+            log::add('genepi','debug','execute: info: ' . $infoCmd->getId() . ' - ' . $infoCmd->getName() . ' - ' . $infoCmd->getLogicalId(). ' - valeur : ' . $sendParam['value']);
+            $infoCmd->event($sendParam['value']);
         }
     }
 

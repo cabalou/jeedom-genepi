@@ -83,6 +83,7 @@ async function connectToGenePi() {
   try {
     let name = await jeedomAPI('config::byKey', {"key":"name","plugin":"genepi"});
     let url  = await jeedomAPI('config::byKey', {"key":"ip","plugin":"genepi"});
+//TODO: tester name/url
 
     console.log('name %s - url %s', name, url);
 
@@ -94,13 +95,13 @@ async function connectToGenePi() {
       // socket name exists but url change
     }
 
-    var ws = new WebSocket(url, 1000);
-    require('./jsonrpc.js')(ws, ws.send);
-    ws.on('message', ws.handleMessage);
+    genepiList[name] = new WebSocket(url, 1000);
+    require('./jsonrpc.js')(genepiList[name], genepiList[name].send);
+    genepiList[name].on('message', genepiList[name].handleMessage);
 
-    ws.on('open', function open() {
+    genepiList[name].on('open', function open() {
       // capabilities
-      ws.call('capabilities').then((result) => {
+      genepiList[name].call('capabilities').then((result) => {
 //TODO save capa
 console.log('capabilities response: %s', result);
       });
@@ -118,13 +119,30 @@ const rpcMethod = {
   'check': (params) => 'OK',
 
   // TODO : a supprimer ?
-  'capabilities': async (params) => {
+  'send': async (params) => {
     try {
-      let result = await ws.call('capabilities', params);
-      console.log('capabilities response: %s', result);
-      return result;
+console.log('send request with params : %s', params);
+
+      if (typeof(params.node) !== 'undefined') {
+        //getting genepi node
+        let node = params.node;
+        delete(params.node);
+
+        if (typeof(genepiList[node]) !== 'undefined') {
+          let result = await genepiList[node].call('send', params);
+          console.log('capabilities response: %s', result);
+          return result;
+
+        } else {
+          throw 'RPC method send: node ' + node + ' inconnu';
+        }
+
+      } else {
+        throw 'RPC method send: pas de param node';
+      }
+
     } catch (error) {
-      throw '';
+      throw error;
     }
   },
 
