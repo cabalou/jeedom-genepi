@@ -169,7 +169,7 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
          foreach ($genepiConfig->getNodes() as $node) {
            foreach ($genepiConfig->getProto($node) as $proto) {
              foreach ($genepiConfig->getType($node, $proto) as $type) {
-               foreach ($genepiConfig->getParam($node, $proto, $type) as $paramName => $paramType) {
+               foreach (array_merge($genepiConfig->getParam($node, $proto, $type), $genepiConfig->getRoll($node, $proto, $type)) as $paramName => $paramType) {
 
                  echo '<div class="form-group genepi-param" data-type="' . "$node.$proto.$type" . '">';
                  echo ' <label class="col-sm-3 control-label">{{' . $paramName . '}}</label>';
@@ -179,7 +179,7 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
                    case ('string') :
                      echo '  <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="param.' . $paramName . '"/>';
                      break;
-                   case ('int') :
+                   case ('number') :
                      echo '  <input type="number" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="param.' . $paramName . '"/>';
                      break;
                    case (preg_match('/^\[(\d+)\-(\d+)\]$/', $paramType, $match) ? true : false) :
@@ -227,7 +227,7 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
                        case ('string') :
                          echo '  <input type="text" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
                          break;
-                       case ('int') :
+                       case ('number') :
                          echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
                          break;
                        case (preg_match('/^\[(\d+)\-(\d+)\]$/', $cmdType, $match) ? true : false) :

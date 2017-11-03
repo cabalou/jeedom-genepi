@@ -86,6 +86,8 @@ console.log(' [%s]received param: %s', jsonMsg.payload.id, JSON.stringify(jsonMs
 
     } else if (jsonMsg.type === 'error') {
       // RPC error response - calling promise reject
+console.dir(jsonMsg.payload.error);
+//TODO: internal error
       conn.rpcEvent.emit('callErr' + jsonMsg.payload.id, jsonMsg.payload.error);
       conn.rpcEvent.removeAllListeners('callOK' + jsonMsg.payload.id);
 console.log(' [%s]received error: %s', jsonMsg.payload.id, jsonMsg.payload.error);

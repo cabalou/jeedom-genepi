@@ -33,7 +33,7 @@ class genepiConfig {
         $this->configTree = array();
 
         //get Nodes
-//TODO: getConfig
+//TODO: getConfig plutot que ls
         $nodes = array_map(function ($val) { return substr($val, 0, -5); }, preg_grep("/\.json$/", scandir(self::getPath() ) ));
 
         // parse config file
@@ -56,6 +56,14 @@ class genepiConfig {
 
     public function getParam($node, $proto, $type) {
         return $this->configTree[$node][$proto][$type]['param'];
+    }
+
+    public function getRoll($node, $proto, $type) {
+        if (array_key_exists('rolling', $this->configTree[$node][$proto][$type])) {
+            return $this->configTree[$node][$proto][$type]['rolling'];
+        } else {
+            return array();
+        }
     }
 
     public function getCmd($node, $proto, $type) {
@@ -122,6 +130,7 @@ class genepi extends eqLogic {
 
     // check if genepii daemon responds
     public static function check() {
+//TODO: fonction check
         $gateway = config::byKey('ip','genepi');
         log::add('genepi','debug','Check genepi GW ' . $gateway);
         $pouet = genepi::sendToDaemon('check', $gateway);
@@ -131,8 +140,76 @@ class genepi extends eqLogic {
 
 
     // reception de donnees
-    public static function receiveData($data) {
-        log::add('genepi','info','Donnees recues : ' . json_encode($data));
+    public static function receiveData($recData) {
+        log::add('genepi','info','receiveData : ' . json_encode($recData));
+
+//TODO:
+        $dataSet = [ $recData ];
+
+        foreach ($dataSet as $data) {
+
+            // equipements du meme protocole
+            foreach (eqLogic::byTypeAndSearhConfiguration('genepi', $data['protocol'])  as $equip) {
+                if ($equip->getConfiguration('proto') != $data['protocol']) { continue; }
+//                log::add('genepi','debug','Checking param for equip - ID: ' . $equip->getId() . ' name: ' . $equip->getName() . ' param: ' . json_encode($equip->getConfiguration()));
+
+                // check des param
+                $match = true;
+                foreach ($data['param'] as $paramName => $paramValue) {
+//                    log::add('genepi','debug',' Checking param ' . $paramName . ':' . $paramValue . ' - config: ' . $equip->getConfiguration("param.$paramName"));
+                    if ($equip->getConfiguration("param.$paramName") != $paramValue) {
+                        $match = false;
+                        break;
+                    }
+                }
+
+                if ($match) {
+                    // equipement trouve
+//                    log::add('genepi','debug','MAJ des infos pour equipement - ID: ' . $equip->getId() . ' name: ' . $equip->getName() . ' param: ' . json_encode($equip->getConfiguration()));
+
+                    if ($data['rolling']) {
+                        // MAJ rolling
+                        log::add('genepi','info','MAJ des infos de rolling pour equipement - ID: ' . $equip->getId() . ' name: ' . $equip->getName() . ' param: ' . json_encode($equip->getConfiguration()));
+                        foreach ($data['rolling'] as $paramName => $paramValue) {
+//                            log::add('genepi','debug',' MAJ rolling ' . $paramName . ':' . $paramValue . ' - config: ' . $equip->getConfiguration("param.$paramName"));
+                            $equip->setConfiguration("param.$paramName", $paramValue);
+                        }
+                        $equip->save();
+                    }
+
+                    // pour chaque cmd a MAJ
+                    foreach (array_keys($data['cmd']) as $cmdName) {
+//                        log::add('genepi','debug',' Checking received cmd ' . $cmdName);
+
+                        foreach ($equip->getCmd() as $cmd) {
+                            if (($cmd->getType() !== 'info') || ($cmd->getConfiguration('cmd') !== $cmdName)) { continue; }
+//                            log::add('genepi','debug','  Checking param for cmd ' . $cmd->getId() . ' name: ' . $cmd->getName() . ' param: ' . json_encode($cmd->getConfiguration()));
+
+                            // check des cmd
+                            $value = '';
+                            $match = true;
+                            foreach ($data['cmd'][$cmdName] as $paramName => $paramValue) {
+                                if ($paramName === 'state') {
+                                    $value = $paramValue;
+                                    continue;
+                                }
+//                                log::add('genepi','debug','   Checking param ' . $paramName . ':' . $paramValue . ' - config: ' . $cmd->getConfiguration($paramName));
+                                if ($cmd->getConfiguration($paramName) != $paramValue) {
+                                    $match = false;
+                                    break;
+                                }
+                            }
+
+                            if ( $match && ($value !== '')) {
+                                // cmd trouve
+                                log::add('genepi','info','MAJ des infos pour cmd - ID: ' . $cmd->getId() . ' name: ' . $cmd->getName() . ' param: ' . json_encode($cmd->getConfiguration()) . ' value: ' . $value);
+                                $cmd->event($value);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /*
@@ -162,6 +239,7 @@ class genepi extends eqLogic {
     /*     * *********************Méthodes d'instance************************* */
 
     public function preSave() {
+//TODO: delete all param
 
         // suppression des params vides
         foreach ($this->getConfiguration() as $paramName => $paramValue) {
@@ -248,6 +326,10 @@ class genepiCmd extends cmd {
 
     public function execute($_options = array()) {
 
+        if ($this->getType() == 'info') {
+            return $this->getConfiguration('value');
+        }
+
         $equip = eqLogic::byId($this->getEqLogic_id());
         $equipConfig = $equip->getConfiguration();
 
@@ -257,17 +339,20 @@ class genepiCmd extends cmd {
             "type"     => $equipConfig['type']
         );
 
-        // ajout des param de l'equipement
+        // ajout de la cmd et des param de l'equipement
         foreach ($equipConfig as $param => $value) {
             if (preg_match('/^param\.(.+)$/', $param, $match)) {
                 $sendParam[$match[1]] = $value;
             }
         }
 
-        // commande
-        if (!preg_match('/(.*)\.(btn|on|off|slider|color)$/', $this->getLogicalId(), $match)) { throw new Exception(__('LogicalId non reconnu : ' . $this->getLogicalId() . 'pour la commande ' . $this->getId() )); }
+        // ajout des param de la cmd
+        foreach ($this->getConfiguration() as $param => $value) {
+            $sendParam[$param] = $value;
+        }
 
-        $sendParam['cmd'] = $match[1];
+        // analyse logicalId
+        if (!preg_match('/(.*)\.(btn|on|off|slider|color)$/', $this->getLogicalId(), $match)) { throw new Exception(__('LogicalId non reconnu : ' . $this->getLogicalId() . 'pour la commande ' . $this->getId() )); }
 
         // calcul de la valeur
         switch ($this->getSubType()) {
@@ -302,11 +387,8 @@ class genepiCmd extends cmd {
         $result = genepi::sendToDaemon('send', $sendParam);
         log::add('genepi','debug','execute response : ' . json_encode($result));
 
-// retour d'exec
-        if ( is_object($infoCmd) and ($sendParam['value'] !== '') ) {
-            log::add('genepi','debug','execute: info: ' . $infoCmd->getId() . ' - ' . $infoCmd->getName() . ' - ' . $infoCmd->getLogicalId(). ' - valeur : ' . $sendParam['value']);
-            $infoCmd->event($sendParam['value']);
-        }
+        genepi::receiveData($result);
+        return true;
     }
 
     /*     * **********************Getteur Setteur*************************** */

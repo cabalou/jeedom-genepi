@@ -66,7 +66,7 @@ $('.genepi-cmd-add').on('click', function(){
     var actionType = $(this).closest('.genepi-cmd').find('.genepi-cmd-action').attr('data-cmd-param-type');
     var stateType  = $(this).closest('.genepi-cmd').find('.genepi-cmd-state' ).attr('data-cmd-param-type');
 
-    var param = {};
+    var param = {'cmd':cmdName};
 
     $(this).closest('.genepi-cmd').find('.genepi-cmd-attr').each(function () {
         if ($(this).val() == '') {
@@ -113,7 +113,7 @@ $('.genepi-cmd-add').on('click', function(){
           case 'toggle':
             addCmdToTable({name: cmdName, logicalId: cmdLogicalId, type: 'info', subType: 'binary', configuration: param});
             break;
-          case 'int':
+          case 'number':
             addCmdToTable({name: cmdName, logicalId: cmdLogicalId, type: 'info', subType: 'numeric', configuration: param});
             break;
           case ( (match = /^\[(\d+)\-(\d+)\]$/.exec(stateType)) && stateType):
