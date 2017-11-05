@@ -1,3 +1,4 @@
-daemon/config/*
+daemon/capa/*
+daemon/config
 daemon/node_modules/
 test/

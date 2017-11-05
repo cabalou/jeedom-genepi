@@ -3,9 +3,17 @@
 
 const leave = require('leave');
 const WebSocket = require('./recon-ws.js');
+const fs = require('fs');
+
+
+//////////////////////////////  Checking capa dir  //////////////////////////////
+const capaPath = __dirname + '/capa/';
+if (!fs.existsSync(capaPath)) {
+  fs.mkdirSync(capaPath, 0o777);
+}
 
 //////////////////////////////  Parsing arguments  //////////////////////////////
-var ArgumentParser = require('argparse').ArgumentParser;
+const ArgumentParser = require('argparse').ArgumentParser;
 var parser = new ArgumentParser({
   version: '0.0.1',
   addHelp:true,
@@ -101,9 +109,15 @@ async function connectToGenePi() {
 
     genepiList[name].on('open', function open() {
       // capabilities
+//TODO: result = await
+//TODO: call timeout si genepi pas joignable
       genepiList[name].call('capabilities').then((result) => {
-//TODO save capa
-console.log('capabilities response: %s', result);
+        // save capa to file
+        fs.writeFile(capaPath + name + '.json', JSON.stringify(result, true, 4), function(err) {
+          if(err) {
+console.log(err);
+          }
+        }); 
       });
     });
 

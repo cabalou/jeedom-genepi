@@ -25,7 +25,7 @@ class genepiConfig {
     private $configTree;
 
     private static function getPath() {
-        return realpath(dirname(__FILE__) . "/../../daemon/config");
+        return realpath(dirname(__FILE__) . "/../../daemon/capa");
     }
 
     // Constructor - get config file and build config tree

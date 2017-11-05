@@ -21,6 +21,7 @@ if (!isConnect()) {
     include_file('desktop', '404', 'php');
     die();
 }
+//TODO: delete config file quand on suppr un noeud
 ?>
 <form class="form-horizontal">
     <fieldset>
