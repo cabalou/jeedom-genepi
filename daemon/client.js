@@ -86,6 +86,8 @@ async function jeedomAPI(method, params={}) {
 }
 
 
+
+//////////////////////////////  GenePi daemons handling  //////////////////////////////
 // connect to GenePi daemons
 async function connectToGenePi() {
   try {
@@ -119,6 +121,13 @@ console.log(err);
           }
         }); 
       });
+    });
+
+    // handle genepi notif
+    genepiList[name].addMethod('message', (param) => {
+      console.info('Got notification from genepi: %s - %j', name, param);
+      param.plugin = 'genepi';
+      jeedomAPI('notif', param);
     });
 
   } catch (error) {
