@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-const leave = require('leave');
 const WebSocket = require('./recon-ws.js');
 const fs = require('fs');
 
@@ -17,7 +16,7 @@ const ArgumentParser = require('argparse').ArgumentParser;
 var parser = new ArgumentParser({
   version: '0.0.1',
   addHelp:true,
-  description: 'Jeedom RFpi daemon'
+  description: 'Jeedom GenePi daemon'
 });
 parser.addArgument(
   [ '-p', '--port' ],
@@ -36,13 +35,26 @@ parser.addArgument(
   }
 );
 parser.addArgument(
-  '-f',
+  [ '-l', '--loglevel' ],
+  {
+    help: 'Daemon loglevel. Default: 3 (LOG)',
+    defaultValue: 3
+  }
+);
+parser.addArgument(
+  '-b',
   {
     help: 'baz bar'
   }
 );
 var args = parser.parseArgs();
-console.dir(args);
+
+
+// init logging
+require('console-ten').init(console, args.loglevel, (level) => "[" + (new Date().toISOString().substr(5, 18).replace('T', ' ')) + "] [" + level + "]\t");
+
+
+console.debug('Arguments: %j', args);
 
 
 //////////////////////////////  Jeedom functions  //////////////////////////////
@@ -53,6 +65,7 @@ var genepiList = {};
 // send jsonRPC request to jeedom
 async function jeedomAPI(method, params={}) {
   try {
+    console.info('jeedonAPI - Method: %s - params: %j', method, params);
     //adding apikey
     params.apikey=args.key;
 
@@ -81,7 +94,7 @@ async function jeedomAPI(method, params={}) {
     // sending RPC request
     return await req.call(method, params);
   } catch (error) {
-    throw 'jeedom jsonRPC API not working';
+    throw 'Jeedom jsonRPC API not working: ' + error;
   }
 }
 
@@ -95,7 +108,7 @@ async function connectToGenePi() {
     let url  = await jeedomAPI('config::byKey', {"key":"ip","plugin":"genepi"});
 //TODO: tester name/url
 
-    console.log('name %s - url %s', name, url);
+    console.info('Connecting Genepi name %s - url %s', name, url);
 
 
 //TODO check
@@ -105,33 +118,47 @@ async function connectToGenePi() {
       // socket name exists but url change
     }
 
+    // bind websocket and add RPC handler
     genepiList[name] = new WebSocket(url, 1000);
     require('./jsonrpc.js')(genepiList[name], genepiList[name].send);
     genepiList[name].on('message', genepiList[name].handleMessage);
 
-    genepiList[name].on('open', function open() {
-      // capabilities
-//TODO: result = await
+    genepiList[name].on('open', async () => {
+      try {
+        console.log('Connexion au Genepi %s - OK', name);
+        // get capabilities
 //TODO: call timeout si genepi pas joignable
-      genepiList[name].call('capabilities').then((result) => {
+        let result = await genepiList[name].call('capabilities');
+
         // save capa to file
         fs.writeFile(capaPath + name + '.json', JSON.stringify(result, true, 4), function(err) {
           if(err) {
-console.log(err);
+            throw 'Error writing genepi ' + name + ' capabilities: ' + err;
           }
-        }); 
-      });
+          console.log('Capabilities pour GenePi %s - OK', name);
+        });
+
+      } catch (err) {
+        console.error('Impossible de recuperer les capabilities du genepi %s: %s', name, err);
+//TODO: retry ou kill de la conn
+      }
     });
 
     // handle genepi notif
-    genepiList[name].addMethod('message', (param) => {
+    genepiList[name].addMethod('message', async (param) => {
       console.info('Got notification from genepi: %s - %j', name, param);
       param.plugin = 'genepi';
-      jeedomAPI('notif', param);
+      try {
+        await jeedomAPI('notif', param);
+      } catch (error) {
+        console.error('Message non reconnu depuis GenePi %s: %s', name, error);
+      }
     });
 
   } catch (error) {
-    throw 'connectToGenePi ERROR';
+    console.error('Connection to GenePi failed: %s', error);
+//    throw 'Connection to GenePi failed: ' + error;
+// appeler la fct avec await si besoin de throw
   }
 }
 
@@ -143,29 +170,29 @@ const rpcMethod = {
 
   // TODO : a supprimer ?
   'send': async (params) => {
-    try {
-console.log('send request with params : %s', params);
+    console.info('Send request with params : %j', params);
 
-      if (typeof(params.node) !== 'undefined') {
-        //getting genepi node
-        let node = params.node;
-        delete(params.node);
+    if (typeof(params.node) !== 'undefined') {
+      //getting genepi node
+      let node = params.node;
+      delete(params.node);
 
-        if (typeof(genepiList[node]) !== 'undefined') {
+      if (typeof(genepiList[node]) !== 'undefined') {
+        try {
           let result = await genepiList[node].call('send', params);
-          console.log('capabilities response: %s', result);
-          return result;
-
-        } else {
-          throw 'RPC method send: node ' + node + ' inconnu';
+        } catch (error) {
+          throw 'RPC method send: '+ error;
         }
 
+        console.info('Send response: %j', result);
+        return result;
+
       } else {
-        throw 'RPC method send: pas de param node';
+        throw 'RPC method send: node ' + node + ' inconnu';
       }
 
-    } catch (error) {
-      throw error;
+    } else {
+      throw 'RPC method send: pas de param node';
     }
   },
 
@@ -180,7 +207,7 @@ const textBody = require('body');
 
 const server = http.createServer(function(req, res) {
   var page = url.parse(req.url).pathname;
-  console.log(page);
+  console.info('Request for URL: %s', page);
 
 //TODO ajout du APIkey
   if (page == '/') {
@@ -213,19 +240,5 @@ const server = http.createServer(function(req, res) {
 //////////////////////////////  Connecting to GenePi daemons  //////////////////////////////
 
 connectToGenePi();
+//TODO: retry ?
 
-
-/*
-var config = {};
-jsonfile.readFile('config.json', 'utf8', function (err, conf) {
-  if (typeof conf == 'undefined') {
-    console.log(err);
-    process.exit(1);
-  } else {
-    config = conf;
-  }
-});
-//curl -d '{"jsonrpc":"2.0","id":1,"method":"config::byKey","params":{"apikey":"gPUrMYlgGtZE7EZIAXJ74Lp0JI75IcSP7Txd52vJ5mlf3b6h","key":"ip","plugin":"genepi"}}' -H 'content-type:application/json;' http://127.0.0.1/core/api/jeeApi.php ; echo ; echo
-
-*/
- 
