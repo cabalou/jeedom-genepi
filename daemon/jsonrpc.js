@@ -8,6 +8,9 @@ const jsonrpc = require('jsonrpc-lite')
 function jsonRPC (conn, sendMethod, methodList) {
 
   // init connection
+//TODO:param
+  conn.rpcTimeout = 4000;
+
   conn.rpcID = 1;
   conn.rpcMethod = methodList || {};    // list of method handlers
   conn.rpcSend = sendMethod;            // connection/socket send method
@@ -27,8 +30,20 @@ function jsonRPC (conn, sendMethod, methodList) {
   conn.call = (method, params) => {
     return new Promise(function(resolve, reject) {
 console.info ('[%s]calling method %s with param %s', conn.rpcID, method, JSON.stringify(params));
-      conn.rpcEvent.once('callOK' + conn.rpcID, resolve);
-      conn.rpcEvent.once('callErr' + conn.rpcID, reject);
+
+      // set request timeout
+      let id = conn.rpcID;
+      let timeout = setTimeout(() => {
+console.info ('[%s]RPC call timeout', id);
+        conn.rpcEvent.emit('callErr' + id, 'RPC call timeout');
+        conn.rpcEvent.removeAllListeners('callOK' + id);
+      }, conn.rpcTimeout);
+
+      // set response listeners
+      conn.rpcEvent.once('callOK' + conn.rpcID, (param) => { clearTimeout(timeout); resolve(param); } );
+      conn.rpcEvent.once('callErr' + conn.rpcID, (param) => { clearTimeout(timeout); reject(param); } );
+
+      // send request
       conn.rpcSend(JSON.stringify(jsonrpc.request(conn.rpcID++, method, params)));
     });
   }

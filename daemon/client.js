@@ -23,15 +23,15 @@ parser.addArgument(
   {
     help: 'daemon listening port. default 8081',
     defaultValue: '8081'
+//    required: true
   }
 );
 parser.addArgument(
-  [ '-k', '--key' ],
+  [ '-k', '--apikey' ],
   {
     help: 'Jeedom API key',
-    defaultValue: 'gPUrMYlgGtZE7EZIAXJ74Lp0JI75IcSP7Txd52vJ5mlf3b6h',
-//TODO
-//    required: true
+//TODO:    defaultValue: process.env.JEEDOM_APIKEY,
+    defaultValue: process.env.JEEDOM_APIKEY || 'gPUrMYlgGtZE7EZIAXJ74Lp0JI75IcSP7Txd52vJ5mlf3b6h',
   }
 );
 parser.addArgument(
@@ -42,9 +42,10 @@ parser.addArgument(
   }
 );
 parser.addArgument(
-  '-b',
+  [ '-j', '--jeedom-url' ],
   {
-    help: 'baz bar'
+    help: 'Jeedom API URL',
+    defaultValue: 'http://127.0.0.1:80/'
   }
 );
 var args = parser.parseArgs();
@@ -67,11 +68,12 @@ async function jeedomAPI(method, params={}) {
   try {
     console.info('jeedonAPI - Method: %s - params: %j', method, params);
     //adding apikey
-    params.apikey=args.key;
+    params.apikey=args.apikey;
 
     // jeedom jsonRPC API
     var options = {
       host: '127.0.0.1',
+//TODO
       path: '/core/api/jeeApi.php',
       port: '80',
       method: 'POST',
@@ -126,8 +128,8 @@ async function connectToGenePi() {
     genepiList[name].on('open', async () => {
       try {
         console.log('Connexion au Genepi %s - OK', name);
+
         // get capabilities
-//TODO: call timeout si genepi pas joignable
         let result = await genepiList[name].call('capabilities');
 
         // save capa to file
@@ -155,8 +157,17 @@ async function connectToGenePi() {
       }
     });
 
+    genepiList[name].on('error', function (err) {
+      console.error('GenePi %s socket error: %s', name, err);
+    });
+
+    genepiList[name].on('close', function () {
+      console.warn('GenePi %s connexion terminee', name);
+    });
+
+
   } catch (error) {
-    console.error('Connection to GenePi failed: %s', error);
+    console.error('Echec de la connection au GenePi: %s', error);
 //    throw 'Connection to GenePi failed: ' + error;
 // appeler la fct avec await si besoin de throw
   }
@@ -165,6 +176,9 @@ async function connectToGenePi() {
 
 //////////////////////////////  Configuring RPC methods  //////////////////////////////
 const rpcMethod = {
+  // TODO: update connect return state
+  'update_nodes': (params) => 'OK',
+
   // TODO : param = URL
   'check': (params) => 'OK',
 
@@ -233,12 +247,28 @@ const server = http.createServer(function(req, res) {
     return res.end('Unauthorized');
   }
 
-})
-.listen(args.port);
+});
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error('Impossible de lancer le daemon: port deja utilise');
+    process.exit(1);
+  }
+
+  console.error('Erreur sur le serveur: %s', err);  
+});
+
+server.listen(args.port, 'localhost', function (err) {
+  if (err) {
+    console.error('Impossible de lancer le daemon: %s', err);
+    process.exit(1);
+  }
+  console.log('Daemon en ecoute sur le port port %d', server.address().port);
+});
 
 //////////////////////////////  Connecting to GenePi daemons  //////////////////////////////
 
+console.log('Initialisation des connexions au GenePi...');
 connectToGenePi();
 //TODO: retry ?
 

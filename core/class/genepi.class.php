@@ -139,6 +139,127 @@ class genepi extends eqLogic {
     }
 
 
+    public static function deamon_path() {
+        return realpath(dirname(__FILE__) . '/../../daemon/client.js');
+    }
+
+    public static function deamon_pid() {
+        return trim( shell_exec ("ps aux | grep '" . self::deamon_path() . "' | grep -v grep | awk '{print $2}'") );
+    }
+
+
+    public static function deamon_info() {
+        $return = array(
+            'log'        => 'genepi_daemon',
+            'launchable' => 'ok',
+            'state'      => 'nok'
+        );
+
+//        $pid = trim( shell_exec ("ps aux | grep 'daemon/client.js' | grep -v grep | awk '{print $2}'") );
+        $pid = self::deamon_pid();
+        if ($pid != '' && $pid != '0') {
+            $return['state'] = 'ok';
+        }
+/*
+        if (config::byKey('nodeGateway', 'rflink') == 'none' || config::byKey('nodeGateway','rflink') == '') {
+            $return['launchable'] = 'nok';
+            $return['launchable_message'] = __('Le port n\'est pas configuré', __FILE__);
+        }
+*/
+        return $return;
+    }
+
+    public static function deamon_start() {
+//        self::deamon_stop();
+
+        $deamon_info = self::deamon_info();
+        if ($deamon_info['launchable'] != 'ok') {
+            throw new Exception(__('Veuillez vérifier la configuration : port du démon', __FILE__));
+        }
+
+        log::add('genepi', 'info', 'Lancement du démon genepi');
+
+        $url = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp');
+        $apikey = jeedom::getApiKey();
+//        $loglevel = log::convertLogLevel(log::getLogLevel('genepi'));
+        $loglevel = log::getLogLevel('genepi');
+
+//TODO port + URL dans demon
+
+        $cmd = "node " . self::deamon_path() . " --jeedom-url $url --loglevel $loglevel --port 8081";
+
+        log::add('genepi', 'debug', 'Lancement démon genepi : ' . $cmd);
+
+        putenv("JEEDOM_APIKEY=$apikey");
+        $result = exec('nohup ' . $cmd . ' >> ' . log::getPathToLog('genepi_daemon') . ' 2>&1 &');
+        if (strpos(strtolower($result), 'error') !== false || strpos(strtolower($result), 'traceback') !== false) {
+            log::add('genepi', 'error', $result);
+            return false;
+        }
+
+        $i = 0;
+        while ($i < 30) {
+            $deamon_info = self::deamon_info();
+            if ($deamon_info['state'] == 'ok') {
+                break;
+            }
+            sleep(1);
+            $i++;
+        }
+        if ($i >= 30) {
+            log::add('genepi', 'error', 'Impossible de lancer le démon genepi', 'unableStartDeamon');
+            return false;
+        }
+
+        message::removeAll('genepi', 'unableStartDeamon');
+        log::add('genepi', 'info', 'Démon genepi lancé');
+        return true;
+    }
+
+
+    public static function deamon_stop() {
+        $pid = self::deamon_pid();
+        log::add('genepi', 'info', 'Arrêt du démon genepi. PID : ' . $pid);
+
+        if (!$pid) { return;}
+
+        exec("kill $pid");
+        sleep(1);
+
+        $deamon_info = self::deamon_info();
+        if ($deamon_info['state'] == 'ok') {
+            exec("kill -9 $pid");
+        }
+        sleep(1);
+
+        $deamon_info = self::deamon_info();
+        if ($deamon_info['state'] == 'ok') {
+            exec("sudo kill -9 $pid");
+        }
+    }
+/*
+
+    public static function dependancy_info() {
+        $return = array();
+        $return['log'] = 'rflink_dep';
+        $serialport = realpath(dirname(__FILE__) . '/../../node/node_modules/serialport');
+        $request = realpath(dirname(__FILE__) . '/../../node/node_modules/request');
+        $return['progress_file'] = '/tmp/rflink_dep';
+        if (is_dir($serialport) && is_dir($request)) {
+            $return['state'] = 'ok';
+        } else {
+            $return['state'] = 'nok';
+        }
+        return $return;
+    }
+
+    public static function dependancy_install() {
+        log::add('rflink','info','Installation des dépéndances nodejs');
+        $resource_path = realpath(dirname(__FILE__) . '/../../resources');
+        passthru('/bin/bash ' . $resource_path . '/nodejs.sh ' . $resource_path . ' > ' . log::getPathToLog('rflink_dep') . ' 2>&1 &');
+    }
+*/
+
     // reception de donnees
     public static function receiveData($recData) {
         log::add('genepi','info','receiveData : ' . json_encode($recData));
