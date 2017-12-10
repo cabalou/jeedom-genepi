@@ -225,13 +225,13 @@ foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
                    } else {
                      switch ($cmdType) {
                        case ('string') :
-                         echo '  <input type="text" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
+                         echo '  <input type="text" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="param.' . $cmdParam . '"/>';
                          break;
                        case ('number') :
-                         echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '"/>';
+                         echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="param.' . $cmdParam . '"/>';
                          break;
                        case (preg_match('/^\[(\d+)\-(\d+)\]$/', $cmdType, $match) ? true : false) :
-                         echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="' . $cmdParam . '" placeholder="Valeur entre ' . $match[1] . ' et ' . $match[2] . '"/>';
+                         echo '  <input type="number" class="genepi-cmd-attr col-sm3 form-control" data-cmd-param-name="param.' . $cmdParam . '" placeholder="Valeur entre ' . $match[1] . ' et ' . $match[2] . '"/>';
                          break;
                        default:
                          echo ' <label class="col-sm-3 control-label">{{' . $cmdType . ' inconnu}}</label>';

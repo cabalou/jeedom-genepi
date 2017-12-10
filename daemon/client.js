@@ -194,12 +194,13 @@ const rpcMethod = {
       if (typeof(genepiList[node]) !== 'undefined') {
         try {
           let result = await genepiList[node].call('send', params);
+
+          console.info('Send response: %j', result);
+          return result;
+
         } catch (error) {
           throw 'RPC method send: '+ error;
         }
-
-        console.info('Send response: %j', result);
-        return result;
 
       } else {
         throw 'RPC method send: node ' + node + ' inconnu';

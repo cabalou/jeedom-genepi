@@ -66,7 +66,7 @@ $('.genepi-cmd-add').on('click', function(){
     var actionType = $(this).closest('.genepi-cmd').find('.genepi-cmd-action').attr('data-cmd-param-type');
     var stateType  = $(this).closest('.genepi-cmd').find('.genepi-cmd-state' ).attr('data-cmd-param-type');
 
-    var param = {'cmd':cmdName};
+    var param = {'param.cmd':cmdName};
 
     $(this).closest('.genepi-cmd').find('.genepi-cmd-attr').each(function () {
         if ($(this).val() == '') {
@@ -76,7 +76,7 @@ $('.genepi-cmd-add').on('click', function(){
         }
 
         param[$(this).attr('data-cmd-param-name')] = $(this).val();
-        cmdName += ' ' + $(this).attr('data-cmd-param-name') + ' ' + $(this).val();
+        cmdName += ' ' + $(this).attr('data-cmd-param-name').replace('param.','') + ' ' + $(this).val();
     });
 
     var cmdLogicalId = cmdName;
