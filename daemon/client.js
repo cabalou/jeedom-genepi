@@ -73,7 +73,7 @@ async function jeedomAPI(method, params={}) {
     // jeedom jsonRPC API
     var options = {
       host: '127.0.0.1',
-//TODO
+//TODO : utiliser args.jeedom-url
       path: '/core/api/jeeApi.php',
       port: '80',
       method: 'POST',
@@ -108,7 +108,7 @@ async function connectToGenePi() {
   try {
     let name = await jeedomAPI('config::byKey', {"key":"name","plugin":"genepi"});
     let url  = await jeedomAPI('config::byKey', {"key":"ip","plugin":"genepi"});
-//TODO: tester name/url
+//TODO: tester name/url - utiliser une api dediee
 
     console.info('Connecting Genepi name %s - url %s', name, url);
 
@@ -176,18 +176,18 @@ async function connectToGenePi() {
 
 //////////////////////////////  Configuring RPC methods  //////////////////////////////
 const rpcMethod = {
-  // TODO: update connect return state
+  // TODO: update connect / return state. tester apikey du genepi
   'update_nodes': (params) => 'OK',
 
-  // TODO : param = URL
+  // TODO : param = URL ? A suppr ?
   'check': (params) => 'OK',
 
-  // TODO : a supprimer ?
+  // send request to genepi node
   'send': async (params) => {
     console.info('Send request with params : %j', params);
 
     if (typeof(params.node) !== 'undefined') {
-      //getting genepi node
+      // getting genepi node
       let node = params.node;
       delete(params.node);
 

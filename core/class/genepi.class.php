@@ -506,7 +506,7 @@ class genepiCmd extends cmd {
 
         // ancienne valeur
         $infoCmd = cmd::byId($this->getValue());
-        if ( is_object($infoCmd) and ($infoCmd->getCache('value', false)) ) {
+        if ( is_object($infoCmd) and ($infoCmd->getCache('value') !== '') ) {
             $sendParam['oldValue'] = $infoCmd->getCache('value');
         }
 
