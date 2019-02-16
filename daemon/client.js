@@ -30,8 +30,7 @@ parser.addArgument(
   [ '-k', '--apikey' ],
   {
     help: 'Jeedom API key',
-//TODO:    defaultValue: process.env.JEEDOM_APIKEY,
-    defaultValue: process.env.JEEDOM_APIKEY || 'gPUrMYlgGtZE7EZIAXJ74Lp0JI75IcSP7Txd52vJ5mlf3b6h',
+    defaultValue: process.env.JEEDOM_APIKEY,
   }
 );
 parser.addArgument(
@@ -51,7 +50,13 @@ parser.addArgument(
 var args = parser.parseArgs();
 
 
-// init logging
+// Converting loglevel
+if (isNaN(args.loglevel) && typeof( require('console-ten').LEVELS[args.loglevel.toUpperCase()] ) !== 'undefined' ) {
+  args.loglevel = require('console-ten').LEVELS[args.loglevel.toUpperCase()];
+}
+
+
+// Init logging
 require('console-ten').init(console, args.loglevel, (level) => "[" + (new Date().toISOString().substr(5, 18).replace('T', ' ')) + "] [" + level + "]\t");
 
 

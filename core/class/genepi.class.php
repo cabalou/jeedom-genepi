@@ -180,9 +180,12 @@ class genepi extends eqLogic {
         log::add('genepi', 'info', 'Lancement du démon genepi');
 
         $url = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp');
+
+        // Utilisation de l'API jeedom en JSONRPC
         $apikey = jeedom::getApiKey();
-//        $loglevel = log::convertLogLevel(log::getLogLevel('genepi'));
-        $loglevel = log::getLogLevel('genepi');
+
+        // Conversion loglevel au format texte
+        $loglevel = log::convertLogLevel(log::getLogLevel('genepi'));
 
 //TODO utilisation du port + URL dans demon
 
