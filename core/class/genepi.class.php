@@ -81,6 +81,7 @@ class genepi extends eqLogic {
     // send a jsonRPC request to Daemon
     public static function sendToDaemon($method, $param = null) {
 
+//TODO: param du port du daemon
         $daemonURL = "http://127.0.0.1:8081/";
 
         log::add('genepi','info','RPC call - methode : ' . $method . ' - param : ' . json_encode($param));
@@ -105,7 +106,6 @@ class genepi extends eqLogic {
         $curl_response = curl_exec($curl);
         curl_close($curl);
 
-//        if (curl_errno($curl)){
         if ($curl_response) {
             log::add('genepi','debug','Daemon response: ' . $curl_response);
             $result = json_decode($curl_response, true);
@@ -128,7 +128,7 @@ class genepi extends eqLogic {
     }
 
 
-    // check if genepii daemon responds
+    // check if genepi daemon responds
     public static function check() {
 //TODO: fonction check
         $gateway = config::byKey('ip','genepi');
@@ -155,12 +155,12 @@ class genepi extends eqLogic {
             'state'      => 'nok'
         );
 
-//        $pid = trim( shell_exec ("ps aux | grep 'daemon/client.js' | grep -v grep | awk '{print $2}'") );
         $pid = self::deamon_pid();
         if ($pid != '' && $pid != '0') {
             $return['state'] = 'ok';
         }
 /*
+//TODO: verif que le port est OK et que nodejs est bon
         if (config::byKey('nodeGateway', 'rflink') == 'none' || config::byKey('nodeGateway','rflink') == '') {
             $return['launchable'] = 'nok';
             $return['launchable_message'] = __('Le port n\'est pas configuré', __FILE__);
@@ -184,7 +184,7 @@ class genepi extends eqLogic {
 //        $loglevel = log::convertLogLevel(log::getLogLevel('genepi'));
         $loglevel = log::getLogLevel('genepi');
 
-//TODO port + URL dans demon
+//TODO utilisation du port + URL dans demon
 
         $cmd = "node " . self::deamon_path() . " --jeedom-url $url --loglevel $loglevel --port 8081";
 
@@ -238,7 +238,7 @@ class genepi extends eqLogic {
         }
     }
 /*
-
+TODO: gestion dependances
     public static function dependancy_info() {
         $return = array();
         $return['log'] = 'rflink_dep';
@@ -257,6 +257,9 @@ class genepi extends eqLogic {
         log::add('rflink','info','Installation des dépéndances nodejs');
         $resource_path = realpath(dirname(__FILE__) . '/../../resources');
         passthru('/bin/bash ' . $resource_path . '/nodejs.sh ' . $resource_path . ' > ' . log::getPathToLog('rflink_dep') . ' 2>&1 &');
+
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt-get install -y nodejs
     }
 */
 
@@ -264,7 +267,7 @@ class genepi extends eqLogic {
     public static function receiveData($recData) {
         log::add('genepi','info','receiveData : ' . json_encode($recData));
 
-//TODO:
+//TODO: si deja un tableau
         $dataSet = [ $recData ];
 
         foreach ($dataSet as $data) {
@@ -355,10 +358,6 @@ class genepi extends eqLogic {
       }
      */
 
-/*
-curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
-sudo apt-get install -y nodejs
-*/
 
     /*     * *********************Méthodes d'instance************************* */
 
@@ -475,7 +474,6 @@ class genepiCmd extends cmd {
             if (preg_match('/^param\.(.+)$/', $param, $match)) {
                 $sendParam[$match[1]] = $value;
             }
-            //$sendParam[$param] = $value;
         }
 
         // analyse logicalId
