@@ -21,20 +21,20 @@ if (!isConnect()) {
     include_file('desktop', '404', 'php');
     die();
 }
-//TODO: delete config file quand on suppr un noeud
+//TODO: delete capa file quand on suppr un noeud
 ?>
 <form class="form-horizontal">
     <fieldset>
         <div class="form-group">
             <label class="col-lg-4 control-label">{{Nom du GenePi}}</label>
             <div class="col-lg-2">
-                <input class="configKey form-control" data-l1key="name" />
+                <input class="configKey form-control" data-l1key="name" value="local"/>
             </div>
         </div>
         <div class="form-group">
             <label class="col-lg-4 control-label">{{Adresse IP}}</label>
             <div class="col-lg-2">
-                <input class="configKey form-control" data-l1key="ip" value="80" />
+                <input class="configKey form-control" data-l1key="ip" value="ws://localhost:8080/" />
             </div>
         </div>
         <div class="form-group">
