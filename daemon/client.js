@@ -229,8 +229,7 @@ const server = http.createServer(function(req, res) {
   var page = url.parse(req.url).pathname;
   console.info('Request for URL: %s', page);
 
-//TODO ajout du APIkey
-  if (page == '/') {
+  if (page == '/' + args.apikey) {
 
     textBody(req, res, function (err, body) {
       // err probably means invalid HTTP protocol or some shiz. 
@@ -248,9 +247,10 @@ const server = http.createServer(function(req, res) {
     });
 
   } else {
-    //TODO bad APIkey
+    // Bad API key
     res.statusCode = 401;
-    return res.end('Unauthorized');
+    console.info('Unauthorized: bad Genepi API key');
+    return res.end('Unauthorized: bad Genepi API key');
   }
 
 });

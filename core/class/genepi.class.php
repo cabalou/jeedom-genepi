@@ -82,7 +82,8 @@ class genepi extends eqLogic {
     public static function sendToDaemon($method, $param = null) {
 
 //TODO: param du port du daemon
-        $daemonURL = "http://127.0.0.1:8081/";
+        $daemonURL = "http://127.0.0.1:8081/" . jeedom::getApiKey('genepi');
+
 
         log::add('genepi','info','RPC call - methode : ' . $method . ' - param : ' . json_encode($param));
 
