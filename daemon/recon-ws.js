@@ -1,4 +1,4 @@
-var WebSocket= require('uws')
+var WebSocket= require('uws-copy')
 , EventEmitter = require('events').EventEmitter
 , util = require('util')
 
