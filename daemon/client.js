@@ -30,7 +30,7 @@ parser.addArgument(
   [ '-k', '--apikey' ],
   {
     help: 'Jeedom API key',
-    defaultValue: process.env.JEEDOM_APIKEY,
+    defaultValue: process.env.GENEPI_APIKEY,
   }
 );
 parser.addArgument(

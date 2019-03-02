@@ -181,8 +181,8 @@ class genepi extends eqLogic {
 
         $url = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp');
 
-        // Utilisation de l'API jeedom en JSONRPC
-        $apikey = jeedom::getApiKey();
+        // Utilisation de l'API genepi en JSONRPC
+        $apikey = jeedom::getApiKey('genepi');
 
         // Conversion loglevel au format texte
         $loglevel = log::convertLogLevel(log::getLogLevel('genepi'));
@@ -193,7 +193,7 @@ class genepi extends eqLogic {
 
         log::add('genepi', 'debug', 'Lancement démon genepi : ' . $cmd);
 
-        putenv("JEEDOM_APIKEY=$apikey");
+        putenv("GENEPI_APIKEY=$apikey");
         $result = exec('nohup ' . $cmd . ' >> ' . log::getPathToLog('genepi_daemon') . ' 2>&1 &');
         if (strpos(strtolower($result), 'error') !== false || strpos(strtolower($result), 'traceback') !== false) {
             log::add('genepi', 'error', $result);
